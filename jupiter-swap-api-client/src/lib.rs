@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use quote::{QuoteRequest, QuoteResponse};
-use reqwest::{Client, Response};
+use reqwest::{Client, ClientBuilder, Response};
 use serde::de::DeserializeOwned;
 use swap::{SwapInstructionsResponse, SwapInstructionsResponseInternal, SwapRequest, SwapResponse};
 
@@ -39,17 +39,34 @@ impl JupiterSwapApiClient {
         Self { base_path }
     }
 
-    pub async fn quote(&self, quote_request: &QuoteRequest) -> Result<QuoteResponse> {
+    fn build_client(proxy: Option<reqwest::Proxy>) -> Result<reqwest::Client> {
+        match proxy {
+            Some(proxy) => Ok(ClientBuilder::new().proxy(proxy).build()?),
+            None => Ok(Client::new()),
+        }
+    }
+
+    pub async fn quote(
+        &self,
+        quote_request: &QuoteRequest,
+        proxy: Option<reqwest::Proxy>,
+    ) -> Result<QuoteResponse> {
         let query = serde_qs::to_string(&quote_request)?;
-        let response = Client::new()
+        let client = Self::build_client(proxy)?;
+        let response = client
             .get(format!("{}/quote?{query}", self.base_path))
             .send()
             .await?;
         check_status_code_and_deserialize(response).await
     }
 
-    pub async fn swap(&self, swap_request: &SwapRequest) -> Result<SwapResponse> {
-        let response = Client::new()
+    pub async fn swap(
+        &self,
+        swap_request: &SwapRequest,
+        proxy: Option<reqwest::Proxy>,
+    ) -> Result<SwapResponse> {
+        let client = Self::build_client(proxy)?;
+        let response = client
             .post(format!("{}/swap", self.base_path))
             .json(swap_request)
             .send()
@@ -60,8 +77,10 @@ impl JupiterSwapApiClient {
     pub async fn swap_instructions(
         &self,
         swap_request: &SwapRequest,
+        proxy: Option<reqwest::Proxy>,
     ) -> Result<SwapInstructionsResponse> {
-        let response = Client::new()
+        let client = Self::build_client(proxy)?;
+        let response = client
             .post(format!("{}/swap-instructions", self.base_path))
             .json(swap_request)
             .send()

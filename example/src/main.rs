@@ -30,16 +30,22 @@ async fn main() {
     };
 
     // GET /quote
-    let quote_response = jupiter_swap_api_client.quote(&quote_request).await.unwrap();
+    let quote_response = jupiter_swap_api_client
+        .quote(&quote_request, None)
+        .await
+        .unwrap();
     println!("{quote_response:#?}");
 
     // POST /swap
     let swap_response = jupiter_swap_api_client
-        .swap(&SwapRequest {
-            user_public_key: TEST_WALLET,
-            quote_response: quote_response.clone(),
-            config: TransactionConfig::default(),
-        })
+        .swap(
+            &SwapRequest {
+                user_public_key: TEST_WALLET,
+                quote_response: quote_response.clone(),
+                config: TransactionConfig::default(),
+            },
+            None,
+        )
         .await
         .unwrap();
 
@@ -65,11 +71,14 @@ async fn main() {
 
     // POST /swap-instructions
     let swap_instructions = jupiter_swap_api_client
-        .swap_instructions(&SwapRequest {
-            user_public_key: TEST_WALLET,
-            quote_response,
-            config: TransactionConfig::default(),
-        })
+        .swap_instructions(
+            &SwapRequest {
+                user_public_key: TEST_WALLET,
+                quote_response,
+                config: TransactionConfig::default(),
+            },
+            None,
+        )
         .await
         .unwrap();
     println!("swap_instructions: {swap_instructions:?}");
